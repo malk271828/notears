@@ -38,14 +38,16 @@ class NotearsMLP(nn.Module):
                     bounds.append(bound)
         return bounds
 
-    def forward(self, x):  # [n, d] -> [n, d]
-        x = self.fc1_pos(x) - self.fc1_neg(x)  # [n, d * m1]
-        x = x.view(-1, self.dims[0], self.dims[1])  # [n, d, m1]
-        for fc in self.fc2:
-            x = torch.sigmoid(x)  # [n, d, m1]
-            x = fc(x)  # [n, d, m2]
-        x = x.squeeze(dim=2)  # [n, d]
-        return x
+    def forward(self):  # [n, d] -> [n, d]
+        # x = self.fc1_pos(x) - self.fc1_neg(x)  # [n, d * m1]
+        # x = x.view(-1, self.dims[0], self.dims[1])  # [n, d, m1]
+        # for fc in self.fc2:
+        #     x = torch.sigmoid(x)  # [n, d, m1]
+        #     x = fc(x)  # [n, d, m2]
+        # x = x.squeeze(dim=2)  # [n, d]
+        t = self.fc1_to_adj(detach=False)[None, :, :, None]
+        print("notears forward", t.shape, type(t))
+        return t
 
     def h_func(self):
         """Constrain 2-norm-squared of fc1 weights along m1 dim to be a DAG"""
@@ -75,14 +77,15 @@ class NotearsMLP(nn.Module):
         return reg
 
     @torch.no_grad()
-    def fc1_to_adj(self) -> np.ndarray:  # [j * m1, i] -> [i, j]
+    def fc1_to_adj(self, detach=True) -> np.ndarray:  # [j * m1, i] -> [i, j]
         """Get W from fc1 weights, take 2-norm over m1 dim"""
         d = self.dims[0]
         fc1_weight = self.fc1_pos.weight - self.fc1_neg.weight  # [j * m1, i]
         fc1_weight = fc1_weight.view(d, -1, d)  # [j, m1, i]
         A = torch.sum(fc1_weight * fc1_weight, dim=1).t()  # [i, j]
         W = torch.sqrt(A)  # [i, j]
-        W = W.cpu().detach().numpy()  # [i, j]
+        if detach:
+            W = W.cpu().detach().numpy()  # [i, j]
         return W
 
 
