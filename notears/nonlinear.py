@@ -38,16 +38,18 @@ class NotearsMLP(nn.Module):
                     bounds.append(bound)
         return bounds
 
-    def forward(self):  # [n, d] -> [n, d]
-        # x = self.fc1_pos(x) - self.fc1_neg(x)  # [n, d * m1]
-        # x = x.view(-1, self.dims[0], self.dims[1])  # [n, d, m1]
-        # for fc in self.fc2:
-        #     x = torch.sigmoid(x)  # [n, d, m1]
-        #     x = fc(x)  # [n, d, m2]
-        # x = x.squeeze(dim=2)  # [n, d]
-        t = self.fc1_to_adj(detach=False)[None, :, :, None]
-        print("notears forward", t.shape, type(t))
-        return t
+    def forward(self, x):  # [n, d] -> [n, d]
+        bs, dim, ny, nx = x.shape
+        x = x.view(-1, dim)
+        x = self.fc1_pos(x) - self.fc1_neg(x)  # [n, d * m1]
+        x = x.view(-1, self.dims[0], self.dims[1])  # [n, d, m1]
+        for fc in self.fc2:
+            x = torch.sigmoid(x)  # [n, d, m1]
+            x = fc(x)  # [n, d, m2]
+        x = x.squeeze(dim=2)  # [n, d]
+        # t = self.fc1_to_adj(detach=False)[None, :, :, None]
+        # print("notears forward", t.shape, type(t))
+        return x.view(bs, dim, ny, nx)
 
     def h_func(self):
         """Constrain 2-norm-squared of fc1 weights along m1 dim to be a DAG"""
