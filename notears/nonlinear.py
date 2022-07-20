@@ -90,6 +90,9 @@ class NotearsMLP(nn.Module):
             W = W.cpu().detach().numpy()  # [i, j]
         return W
 
+    @property
+    def implicit(self):
+        return self.fc1_to_adj(detach=False)
 
 class NotearsSobolev(nn.Module):
     def __init__(self, d, k):
